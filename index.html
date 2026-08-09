@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CUMTRACK — Prueba local</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand">CUM<span>TRACK</span><small>Seguimiento de cotizaciones</small></div>
+  <nav>
+    <button class="nav-btn active" data-page="dashboard">⌂ <span>Dashboard</span></button>
+    <button class="nav-btn" data-page="new">＋ <span>Nueva cotización</span></button>
+    <button class="nav-btn" data-page="list">☷ <span>Cotizaciones</span></button>
+    <button class="nav-btn" data-page="config">⚙ <span>Configuración</span></button>
+  </nav>
+  <div class="mode">MODO CONECTADO<br><small>Google Sheets como base de datos.</small></div>
+</aside>
+
+<main>
+<section id="dashboard" class="page active">
+  <header><div><h1>Dashboard</h1><p>Seguimiento rápido de cotizaciones de Cumplimiento y RCE.</p></div><button class="btn primary" data-go="new">＋ Nueva cotización</button></header>
+  <div class="stats">
+    <article><span>Cotizaciones hoy</span><strong id="sToday">0</strong></article>
+    <article><span>Cotizadas</span><strong id="sQuoted">0</strong></article>
+    <article><span>En negociación</span><strong id="sNegotiation">0</strong></article>
+    <article><span>Ganadas</span><strong id="sWon">0</strong></article>
+    <article><span>Pendientes</span><strong id="sPending">0</strong></article>
+  </div>
+  <div class="panel"><div class="panel-title"><h2>Cotizaciones de hoy</h2><button class="btn light" data-go="list">Ver todas</button></div><div id="today"></div></div>
+</section>
+
+<section id="new" class="page">
+<header><div><h1>Nueva cotización</h1><p>Registra únicamente la información necesaria.</p></div></header>
+<div class="panel"><form id="quoteForm" class="form">
+  <label>Fecha de solicitud *<input id="fecha" type="date" required></label>
+  <label>Tomador *<input id="tomador" required></label>
+  <label>NIT *<input id="nit" required></label>
+  <label>Entidad contratante *<input id="entidad" required></label>
+  <label>Comercial responsable *<select id="comercial" required></select></label>
+  <label>Tipo de póliza *<select id="tipo" required><option value="">Seleccionar...</option><option>Cumplimiento</option><option>RCE</option><option>Cumplimiento + RCE</option><option>Disposicion Legal</option><option>Seriedad</option><option>Otra</option></select></label>
+  <label>Valor asegurado *<input id="valor" type="number" min="0" step="0.01" required></label>
+  <label>Prima sin IVA *<input id="prima" type="number" min="0" step="0.01" required></label>
+  <label>Tasa CUM - RCE<input id="tasa" placeholder="Ej. 0,35%"></label>
+  <label>Intermediario<select id="intermediario"></select></label>
+  <label>Estado *<select id="estado" required><option>Cotizada</option><option>En negociación</option><option>Ganada</option><option>Perdida</option><option>Anulada</option></select></label>
+  <label class="full">Observaciones<textarea id="observaciones" placeholder="Escribe solo lo necesario para el seguimiento..."></textarea></label>
+  <div class="full form-actions"><button type="button" class="btn light" data-go="dashboard">Cancelar</button><button class="btn primary" type="submit">Guardar cotización</button></div>
+</form></div>
+</section>
+
+<section id="list" class="page">
+<header><div><h1>Cotizaciones</h1><p>Consulta y actualiza tus cotizaciones.</p></div><button class="btn primary" data-go="new">＋ Nueva cotización</button></header>
+<div class="panel"><div class="toolbar"><input id="search" placeholder="Buscar tomador, NIT, entidad o comercial..."><select id="filter"><option value="">Todos los estados</option><option>Cotizada</option><option>En negociación</option><option>Ganada</option><option>Perdida</option><option>Anulada</option></select></div><div id="all"></div></div>
+</section>
+
+<section id="config" class="page">
+<header><div><h1>Configuración</h1><p>En la versión conectada, esta información también se guardará en Google Sheets.</p></div></header>
+<div class="config-grid">
+ <div class="panel"><div class="panel-title"><h2>Comerciales</h2></div><p class="hint">El número se utiliza para abrir WhatsApp con el recordatorio preparado.</p><div class="add-row"><input id="comName" placeholder="Nombre"><input id="comPhone" placeholder="57..."><button class="btn primary" id="addCom">Agregar</button></div><div id="comList"></div></div>
+ <div class="panel"><div class="panel-title"><h2>Intermediarios</h2></div><p class="hint">Se mostrarán en el formulario de nueva cotización.</p><div class="add-row"><input id="intName" placeholder="Nombre"><button class="btn primary" id="addInt">Agregar</button></div><div id="intList"></div></div>
+</div>
+</section>
+</main>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="modal" class="modal hidden"><div class="modal-card"><div class="panel-title"><h2>Cambiar estado</h2><button class="x" id="closeModal">×</button></div><p id="modalInfo"></p><select id="newStatus"><option>Cotizada</option><option>En negociación</option><option>Ganada</option><option>Perdida</option><option>Anulada</option></select><div class="form-actions"><button class="btn light" id="cancelStatus">Cancelar</button><button class="btn primary" id="saveStatus">Guardar</button></div></div></div>
+<script src="js/app.js"></script>
+</body>
+</html>
