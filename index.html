@@ -36,12 +36,19 @@
   <div class="brand">CUM<span>TRACK</span><small>Seguimiento de cotizaciones</small></div>
   <nav>
     <button class="nav-btn active" data-page="dashboard">⌂ <span>Dashboard</span></button>
+    <button class="nav-btn" data-page="budget">◎ <span>Presupuesto</span></button>
     <button class="nav-btn" data-page="new">＋ <span>Nueva cotización</span></button>
     <button class="nav-btn" data-page="list">☷ <span>Cotizaciones</span></button>
     <button class="nav-btn" data-page="pagares">▣ <span>Pagarés</span></button>
     <button class="nav-btn" data-page="config">⚙ <span>Configuración</span></button>
   </nav>
-  <div class="mode">MODO CONECTADO<br><small>Google Sheets como base de datos.</small></div>
+  <div class="mode" id="modeIndicator">MODO CONECTADO<br><small>Google Sheets como base de datos.</small></div>
+
+  <div class="local-mode-box">
+    <button class="btn light" id="loadLocalBtn">📂 Cargar Excel local</button>
+    <small>Úsalo si no tienes acceso a Google Sheets (ej. red empresarial). Solo para consultar y presentar.</small>
+    <input type="file" id="localFileInput" accept=".xlsx,.xls" hidden>
+  </div>
 </aside>
 
 <main>
@@ -55,6 +62,14 @@
     <article><span>En negociación</span><strong id="sNegotiation">0</strong></article>
   </div>
 
+  <div class="dashboard-group-title">Valores en prima</div>
+  <div class="stats">
+    <article><span>Prima total cotizada</span><strong id="sPrimaTotal">$0</strong></article>
+    <article><span>Prima ganada</span><strong id="sPrimaWon">$0</strong></article>
+    <article><span>Prima perdida</span><strong id="sPrimaLost">$0</strong></article>
+    <article><span>Prima en negociación</span><strong id="sPrimaNegotiation">$0</strong></article>
+  </div>
+
   <div class="dashboard-group-title pagares-title">Pagarés</div>
   <div class="stats">
     <article><span>Total pagarés</span><strong id="sPagareTotal">0</strong></article>
@@ -65,27 +80,29 @@
 </section>
 
 <section id="new" class="page">
-<header><div><h1>Nueva cotización</h1><p>Registra únicamente la información necesaria.</p></div></header>
+<header><div><h1 id="quoteFormTitle">Nueva cotización</h1><p id="quoteFormSubtitle">Registra únicamente la información necesaria.</p></div></header>
 <div class="panel"><form id="quoteForm" class="form">
+  <input type="hidden" id="quoteEditId" value="">
   <label>Fecha de solicitud *<input id="fecha" type="date" required></label>
   <label>Tomador *<input id="tomador" required></label>
   <label>NIT *<input id="nit" required></label>
   <label>Entidad contratante *<input id="entidad" required></label>
   <label>Comercial responsable *<select id="comercial" required></select></label>
   <label>Tipo de póliza *<select id="tipo" required><option value="">Seleccionar...</option><option>Cumplimiento</option><option>RCE</option><option>Cumplimiento + RCE</option><option>Disposicion Legal</option><option>Seriedad</option><option>Otra</option></select></label>
-  <label>Valor asegurado *<input id="valor" type="number" min="0" step="0.01" required></label>
-  <label>Prima sin IVA *<input id="prima" type="number" min="0" step="0.01" required></label>
+  <label>Valor contrato *<input id="valor" type="number" min="0" step="0.01" required></label>
+  <label>Prima CUM *<input id="primaCum" type="number" min="0" step="0.01" required></label>
+  <label>Prima RCE<input id="primaRce" type="number" min="0" step="0.01" placeholder="Solo si aplica RCE"></label>
   <label>Tasa CUM - RCE<input id="tasa" placeholder="Ej. 0,35%"></label>
   <label>Intermediario<select id="intermediario"></select></label>
   <label>Estado *<select id="estado" required><option>Cotizada</option><option>En negociación</option><option>Ganada</option><option>Perdida</option></select></label>
   <label class="full">Observaciones<textarea id="observaciones" placeholder="Escribe solo lo necesario para el seguimiento..."></textarea></label>
-  <div class="full form-actions"><button type="button" class="btn light" data-go="dashboard">Cancelar</button><button class="btn primary" type="submit">Guardar cotización</button></div>
+  <div class="full form-actions"><button type="button" class="btn light" data-go="dashboard">Cancelar</button><button class="btn primary" type="submit" id="quoteSubmitBtn">Guardar cotización</button></div>
 </form></div>
 </section>
 
 <section id="list" class="page">
 <header><div><h1>Cotizaciones</h1><p>Consulta y actualiza tus cotizaciones.</p></div><button class="btn primary" data-go="new">＋ Nueva cotización</button></header>
-<div class="panel"><div class="toolbar"><input id="search" placeholder="Buscar tomador, NIT, entidad o comercial..."><select id="filter"><option value="">Todos los estados</option><option>Cotizada</option><option>En negociación</option><option>Ganada</option><option>Perdida</option></select></div><div id="all"></div></div>
+<div class="panel"><div class="toolbar"><input id="search" placeholder="Buscar tomador, NIT, entidad o comercial..."><select id="filter"><option value="">Todos los estados</option><option>Cotizada</option><option>En negociación</option><option>Ganada</option><option>Perdida</option></select><input id="listMonth" type="month" title="Filtrar por mes"><button class="btn light" id="downloadQuotesBtn">⬇ Excel</button></div><div id="all"></div></div>
 </section>
 
 <section id="pagares" class="page">
@@ -117,13 +134,49 @@
   <div class="toolbar">
     <input id="pagareSearch" placeholder="Buscar póliza, tomador, NIT o comercial...">
     <select id="pagareFilter"><option value="">Todos los estados</option><option>Pendiente</option><option>Entregado</option><option>Legalizado</option></select>
+    <input id="pagareMonth" type="month" title="Filtrar por mes">
+    <button class="btn light" id="downloadPagaresBtn">⬇ Excel</button>
   </div>
   <div id="pagareTable"></div>
 </div>
 </section>
 
+<section id="budget" class="page">
+<header><div><h1>Presupuesto</h1><p>Define tu meta de prima por mes y consulta el cumplimiento a medida que ganas cotizaciones.</p></div></header>
+
+<div class="panel budget-form-panel">
+  <div class="panel-title"><h2>Presupuesto del mes</h2></div>
+  <div class="budget-controls">
+    <label>Mes<input id="budgetMonth" type="month"></label>
+    <label>Presupuesto (prima) *<input id="budgetValue" type="number" min="0" step="0.01" placeholder="0"></label>
+    <button class="btn primary" id="saveBudgetBtn">Guardar presupuesto</button>
+  </div>
+</div>
+
+<div class="panel budget-summary-panel">
+  <div class="panel-title"><h2>Cumplimiento</h2><button class="btn light" id="downloadBudgetBtn">⬇ Reporte Excel</button></div>
+  <div class="budget-summary">
+    <div class="budget-progress">
+      <div class="budget-progress-bar"><div id="budgetProgressFill" class="budget-progress-fill"></div></div>
+      <div class="budget-progress-label"><strong id="budgetPercent">0%</strong> del presupuesto cumplido</div>
+    </div>
+    <div class="stats budget-stats">
+      <article><span>Presupuesto</span><strong id="bPresupuesto">$0</strong></article>
+      <article><span>Prima ganada</span><strong id="bGanada">$0</strong></article>
+      <article><span>Restante</span><strong id="bRestante">$0</strong></article>
+      <article><span>Cotizaciones ganadas</span><strong id="bCount">0</strong></article>
+    </div>
+  </div>
+</div>
+
+<!-- <div class="panel budget-quotes-panel">
+  <div class="panel-title"><h2>Cotizaciones del mes</h2></div>
+  <div id="budgetQuotesTable"></div>
+</div> -->
+
+</section> 
 <section id="config" class="page">
-<header><div><h1>Configuración</h1><p>En la versión conectada, esta información también se guardará en Google Sheets.</p></div></header>
+<header><div><h1>Configuración</h1><p>Agrega o elimina comerciales e intermediarios. Todo se guarda directamente en Google Sheets.</p></div></header>
 <div class="config-grid">
  <div class="panel"><div class="panel-title"><h2>Comerciales</h2></div><p class="hint">El número se utiliza para abrir WhatsApp con el recordatorio preparado.</p><div class="add-row"><input id="comName" placeholder="Nombre"><input id="comPhone" placeholder="57..."><button class="btn primary" id="addCom">Agregar</button></div><div id="comList"></div></div>
  <div class="panel"><div class="panel-title"><h2>Intermediarios</h2></div><p class="hint">Se mostrarán en el formulario de nueva cotización.</p><div class="add-row"><input id="intName" placeholder="Nombre"><button class="btn primary" id="addInt">Agregar</button></div><div id="intList"></div></div>
@@ -142,7 +195,23 @@
     <div class="form-actions"><button class="btn light" id="cancelPagareStatus">Cancelar</button><button class="btn primary" id="savePagareStatus">Guardar</button></div>
   </div>
 </div>
+<div id="manualWhatsappModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="panel-title"><h2>Enviar a un comercial</h2><button class="x" id="closeManualWhatsappModal">×</button></div>
+    <p id="manualWhatsappInfo"></p>
+    <select id="manualWhatsappCommercial"></select>
+    <div class="form-actions"><button class="btn light" id="cancelManualWhatsapp">Cancelar</button><button class="btn primary" id="sendManualWhatsapp">Enviar</button></div>
+  </div>
+</div>
+<div id="quoteDetailModal" class="modal hidden">
+  <div class="modal-card quote-detail-card">
+    <div class="panel-title"><h2>Detalle de la cotización</h2><button class="x" id="closeQuoteDetailModal">×</button></div>
+    <div id="quoteDetailBody" class="quote-detail-body"></div>
+    <div class="form-actions"><button class="btn light" id="closeQuoteDetailBtn">Cerrar</button><button class="btn primary" id="editFromDetailBtn">Editar</button></div>
+  </div>
+</div>
 
+<script src="js/xlsx.full.min.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -169,6 +169,32 @@ body {
     font-size: 10px;
 }
 
+.local-mode-box {
+    padding: 12px;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.local-mode-box .btn {
+    width: 100%;
+
+    justify-content: center;
+}
+
+.local-mode-box small {
+    font-size: 10px;
+
+    color: #a9bdcf;
+
+    line-height: 1.4;
+}
+
 
 /* =========================================================
    5. CONTENIDO PRINCIPAL
@@ -347,11 +373,19 @@ header p {
     display: block;
 
     font-size: 30px;
-    line-height: 1;
+    line-height: 1.05;
 
     margin-top: 10px;
 
     color: var(--text);
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    max-width: 100%;
 }
 
 
@@ -376,6 +410,8 @@ header p {
 
     align-items: center;
     justify-content: space-between;
+
+    flex-wrap: wrap;
 
     gap: 12px;
 
@@ -498,6 +534,24 @@ textarea {
     flex: 1;
 }
 
+.toolbar input[type="month"] {
+    flex: none;
+
+    width: 170px;
+
+    min-width: 170px;
+}
+
+.toolbar {
+    flex-wrap: wrap;
+}
+
+.toolbar .btn {
+    flex: none;
+
+    white-space: nowrap;
+}
+
 
 /* =========================================================
    13. TABLA DE COTIZACIONES
@@ -526,7 +580,7 @@ textarea {
 table {
     width: 100%;
 
-    min-width: 1120px;
+    min-width: 1180px;
 
     border-collapse: collapse;
 
@@ -742,9 +796,9 @@ table td:nth-child(7) {
 
 table th:last-child,
 table td:last-child {
-    width: 82px;
+    width: 150px;
 
-    min-width: 82px;
+    min-width: 150px;
 
     white-space: nowrap;
 }
@@ -960,6 +1014,199 @@ table td:last-child {
 
 
 /* =========================================================
+   25a. DETALLE DE COTIZACIÓN (TARJETA FLOTANTE)
+   ========================================================= */
+
+.quote-detail-card {
+    width: min(520px, 100%);
+}
+
+.quote-detail-body {
+    max-height: 60vh;
+
+    overflow-y: auto;
+
+    margin: 4px 0 6px;
+}
+
+.detail-row {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    gap: 16px;
+
+    padding: 10px 0;
+
+    border-bottom: 1px dashed var(--line);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 11px;
+    font-weight: 800;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.02em;
+
+    color: var(--muted);
+
+    flex-shrink: 0;
+
+    padding-top: 2px;
+}
+
+.detail-value {
+    text-align: right;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    color: var(--text);
+
+    word-break: break-word;
+}
+
+table tbody tr.clickable-row {
+    cursor: pointer;
+}
+
+table tbody tr.clickable-row:hover {
+    background: #f8fafc;
+}
+
+
+/* =========================================================
+   25b. PRESUPUESTO
+   ========================================================= */
+
+.budget-form-panel {
+    margin-bottom: 20px;
+}
+
+.budget-summary-panel {
+    margin-bottom: 20px;
+}
+
+.budget-controls {
+    display: flex;
+
+    align-items: flex-end;
+
+    flex-wrap: wrap;
+
+    gap: 14px;
+
+    padding: 21px;
+}
+
+.budget-controls label {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: #475467;
+}
+
+.budget-controls input {
+    border: 1px solid #d6dce4;
+
+    border-radius: 8px;
+
+    padding: 10px 11px;
+
+    font-family: inherit;
+
+    min-width: 180px;
+}
+
+.budget-summary {
+    padding: 21px;
+}
+
+.budget-progress {
+    margin-bottom: 20px;
+}
+
+.budget-progress-bar {
+    width: 100%;
+
+    height: 14px;
+
+    border-radius: 99px;
+
+    background: #eef1f5;
+
+    overflow: hidden;
+
+    margin-bottom: 8px;
+}
+
+.budget-progress-fill {
+    height: 100%;
+
+    width: 0%;
+
+    border-radius: 99px;
+
+    background: linear-gradient(90deg, var(--green), #2E7350);
+
+    transition: width 0.3s ease;
+}
+
+.budget-progress-fill.over {
+    background: linear-gradient(90deg, #ae281e, #e0564a);
+}
+
+.budget-progress-label {
+    font-size: 13px;
+
+    color: var(--muted);
+}
+
+.budget-progress-label strong {
+    color: var(--text);
+
+    font-size: 15px;
+}
+
+.budget-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+    .budget-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .budget-controls {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .budget-controls input {
+        min-width: 0;
+    }
+}
+
+
+/* =========================================================
    26. TABLET
    ========================================================= */
 
@@ -978,7 +1225,7 @@ table td:last-child {
     }
 
     table {
-        min-width: 1120px;
+        min-width: 1180px;
     }
 }
 
@@ -1027,7 +1274,8 @@ table td:last-child {
 
     .brand small,
     .nav-btn span,
-    .mode {
+    .mode,
+    .local-mode-box {
         display: none;
     }
 
@@ -1113,19 +1361,115 @@ table td:last-child {
             width:100%;
             min-width:0;
         }
+
+        .toolbar input[type="month"] {
+            width: 100% !important;
+
+            min-width: 0 !important;
+        }
+
+        .toolbar .btn {
+            width: 100%;
+        }
     }
 
 
-    /* Tabla */
+    /* Tabla -> tarjetas apiladas */
 
     .table-wrap {
-        overflow-x: auto;
+        overflow-x: visible;
 
         overflow-y: visible;
     }
 
     table {
-        min-width: 1120px;
+        min-width: 0;
+
+        width: 100%;
+
+        display: block;
+    }
+
+    table thead {
+        display: none;
+    }
+
+    table tbody {
+        display: block;
+    }
+
+    table tr {
+        display: block;
+
+        border: 1px solid var(--line);
+
+        border-radius: var(--radius);
+
+        margin-bottom: 12px;
+
+        padding: 6px 4px;
+
+        background: var(--card);
+
+        box-shadow: var(--shadow);
+    }
+
+    table td {
+        display: flex;
+
+        justify-content: space-between;
+
+        align-items: flex-start;
+
+        gap: 12px;
+
+        text-align: right;
+
+        border-bottom: 1px dashed var(--line);
+
+        white-space: normal;
+
+        max-width: none !important;
+
+        min-width: 0 !important;
+
+        width: auto !important;
+    }
+
+    table td:last-child {
+        border-bottom: none;
+    }
+
+    table td::before {
+        content: attr(data-label);
+
+        text-align: left;
+
+        font-size: 10px;
+
+        font-weight: 800;
+
+        text-transform: uppercase;
+
+        letter-spacing: 0.02em;
+
+        color: var(--muted);
+
+        flex-shrink: 0;
+    }
+
+    table td > * {
+        text-align: right;
+    }
+
+    table td .actions {
+        justify-content: flex-end;
+
+        width: 100%;
+    }
+
+    table td .sub {
+        text-align: right;
     }
 }
 
