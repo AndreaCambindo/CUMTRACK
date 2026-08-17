@@ -86,7 +86,77 @@ body {
     display: flex;
     flex-direction: column;
 
-    z-index: 100;
+    z-index: 210;
+
+    transform: translateX(-100%);
+
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.sidebar.open {
+    transform: translateX(0);
+
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.25);
+}
+
+.menu-toggle-btn {
+    position: fixed;
+
+    top: 18px;
+    left: 18px;
+
+    z-index: 220;
+
+    width: 44px;
+    height: 44px;
+
+    border: 0;
+    border-radius: 10px;
+
+    background: var(--nav);
+    color: #ffffff;
+
+    font-size: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    box-shadow: var(--shadow);
+
+    transition: background 0.15s ease;
+}
+
+.menu-toggle-btn:hover {
+    background: var(--nav2);
+}
+
+.sidebar-backdrop {
+    position: fixed;
+
+    inset: 0;
+
+    background: rgba(15, 23, 32, 0.45);
+
+    z-index: 190;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition: opacity 0.2s ease;
+}
+
+.sidebar-backdrop.visible {
+    opacity: 1;
+
+    pointer-events: auto;
 }
 
 
@@ -201,9 +271,9 @@ body {
    ========================================================= */
 
 main {
-    margin-left: 245px;
+    margin-left: 0;
 
-    padding: 30px 34px;
+    padding: 84px 34px 30px;
 
     min-height: 100vh;
 
@@ -1213,7 +1283,7 @@ table tbody tr.clickable-row:hover {
 @media (max-width: 1100px) {
 
     main {
-        padding: 25px 25px;
+        padding: 84px 25px 25px;
     }
 
     .stats {
@@ -1252,48 +1322,29 @@ table tbody tr.clickable-row:hover {
 
 @media (max-width: 760px) {
 
-    /* Sidebar */
+    /* Sidebar (drawer a pantalla completa en móvil) */
 
     .sidebar {
-        width: 66px;
-
-        padding: 18px 7px;
+        width: min(280px, 84vw);
     }
 
-    .brand {
-        font-size: 0;
+    .menu-toggle-btn {
+        top: 14px;
 
-        text-align: center;
-    }
+        left: 14px;
 
-    .brand:after {
-        content: "CT";
+        width: 40px;
+
+        height: 40px;
 
         font-size: 18px;
-    }
-
-    .brand small,
-    .nav-btn span,
-    .mode,
-    .local-mode-box {
-        display: none;
-    }
-
-    .nav-btn {
-        text-align: center;
-
-        font-size: 18px;
-
-        padding: 11px 7px;
     }
 
 
     /* Contenido */
 
     main {
-        margin-left: 66px;
-
-        padding: 20px 14px;
+        padding: 74px 14px 20px;
 
         min-height: 100vh;
     }
@@ -1481,7 +1532,7 @@ table tbody tr.clickable-row:hover {
 @media (max-width: 430px) {
 
     main {
-        padding: 16px 10px;
+        padding: 68px 10px 16px;
     }
 
     .stats {

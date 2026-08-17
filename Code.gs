@@ -411,6 +411,10 @@ function dispatch(a, p) {
         return updatePagareStatus(p);
     }
 
+    if (a === 'updatePagare') {
+        return updatePagare(p);
+    }
+
 
     /* PRESUPUESTOS */
 
@@ -1496,6 +1500,112 @@ function updatePagareStatus(d) {
         id: d.id,
 
         estado: d.estado
+
+    };
+
+}
+
+
+/* =========================================================
+   ACTUALIZAR PAGARÉ COMPLETO
+   ========================================================= */
+
+function updatePagare(d) {
+
+    const sh =
+        ss().getSheetByName(
+            SHEET_PAGARES
+        );
+
+    if (!sh) {
+
+        throw new Error(
+            'La hoja Pagares no existe.'
+        );
+
+    }
+
+    const lr =
+        sh.getLastRow();
+
+    if (lr < 2) {
+
+        throw new Error(
+            'No existen pagarés.'
+        );
+
+    }
+
+    const ids =
+        sh
+            .getRange(2, 1, lr - 1, 1)
+            .getValues();
+
+    let row = 0;
+
+    for (
+        let i = 0;
+        i < ids.length;
+        i++
+    ) {
+
+        if (
+            String(ids[i][0]) ===
+            String(d.id)
+        ) {
+
+            row = i + 2;
+
+            break;
+
+        }
+
+    }
+
+    if (!row) {
+
+        throw new Error(
+            'No se encontró el pagaré.'
+        );
+
+    }
+
+    sh
+        .getRange(row, 2, 1, 8)
+        .setValues([[
+
+            d.fechaEmision || '',
+
+            d.poliza || '',
+
+            d.tomador || '',
+
+            d.nit || '',
+
+            d.tipo || 'Abierto',
+
+            d.estado || 'Pendiente',
+
+            d.fecha || '',
+
+            d.comercial || ''
+
+        ]]);
+
+    sh
+        .getRange(row, 11)
+        .setValue(
+            new Date()
+        );
+
+    return {
+
+        success: true,
+
+        message:
+            'Pagaré actualizado correctamente.',
+
+        id: d.id
 
     };
 

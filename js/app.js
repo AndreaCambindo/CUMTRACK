@@ -21,6 +21,7 @@ let config = {
 let statusId = null;
 let pagareStatusId = null;
 let editingQuoteId = null;
+let editingPagareId = null;
 let manualWhatsappQuoteId = null;
 let localMode = false;
 let localFileName = '';
@@ -760,14 +761,106 @@ if ($('localFileInput')) {
 
 
 /* =========================================================
+   MENÚ LATERAL DESPLEGABLE
+   ========================================================= */
+
+function openSidebar() {
+
+    if ($('sidebar')) {
+
+        $('sidebar').classList.add('open');
+    }
+
+    if ($('sidebarBackdrop')) {
+
+        $('sidebarBackdrop').classList.add('visible');
+    }
+
+        // Ocultar el botón cuando el menú está abierto
+    if ($('sidebarToggle')) {
+        $('sidebarToggle').style.display = 'none';
+    }
+}
+
+
+function closeSidebar() {
+
+    if ($('sidebar')) {
+
+        $('sidebar').classList.remove('open');
+    }
+
+    if ($('sidebarBackdrop')) {
+
+        $('sidebarBackdrop').classList.remove('visible');
+    }
+    
+        // Mostrar nuevamente el botón cuando el menú está cerrado
+    if ($('sidebarToggle')) {
+        $('sidebarToggle').style.display = '';
+    }
+}
+
+
+function toggleSidebar() {
+
+    if ($('sidebar') && $('sidebar').classList.contains('open')) {
+
+        closeSidebar();
+
+    } else {
+
+        openSidebar();
+    }
+}
+
+
+if ($('sidebarToggle')) {
+
+    $('sidebarToggle').addEventListener(
+        'click',
+        toggleSidebar
+    );
+}
+
+
+if ($('sidebarBackdrop')) {
+
+    $('sidebarBackdrop').addEventListener(
+        'click',
+        closeSidebar
+    );
+}
+
+
+document.addEventListener(
+    'keydown',
+    event => {
+
+        if (event.key === 'Escape') {
+
+            closeSidebar();
+        }
+    }
+);
+
+
+/* =========================================================
    NAVEGACIÓN
    ========================================================= */
 
 function go(page) {
 
+    closeSidebar();
+
     if (page !== 'new' && editingQuoteId) {
 
         clearEditState();
+    }
+
+    if (page !== 'pagares' && editingPagareId) {
+
+        clearPagareEditState();
     }
 
     document
@@ -806,6 +899,11 @@ function go(page) {
 
 
     if (page === 'pagares') {
+
+        if (!editingPagareId) {
+
+            clearPagareEditState();
+        }
 
         fillPagareForm();
     }
@@ -2202,8 +2300,158 @@ function fillPagareForm() {
 
 
 /* =========================================================
+   ESTADO DE EDICIÓN DE PAGARÉ
+   ========================================================= */
+
+function clearPagareEditState() {
+
+    editingPagareId = null;
+
+    if ($('pagareEditId')) {
+
+        $('pagareEditId').value = '';
+    }
+
+    if ($('pagareFormTitle')) {
+
+        $('pagareFormTitle').textContent =
+            'Registrar pagaré';
+    }
+
+    if ($('pagareSubmitBtn')) {
+
+        $('pagareSubmitBtn').textContent =
+            'Guardar pagaré';
+    }
+}
+
+
+/* =========================================================
+   EDITAR PAGARÉ
+   ========================================================= */
+
+function editPagare(id) {
+
+    const pagare =
+        pagares.find(
+            p => p.id === id
+        );
+
+
+    if (!pagare) return;
+
+
+    editingPagareId = id;
+
+    go('pagares');
+
+    applyPagareToForm(pagare);
+
+
+    if ($('pagareFormTitle')) {
+
+        $('pagareFormTitle').textContent =
+            `Editar pagaré — ${pagare.poliza || ''}`;
+    }
+
+    if ($('pagareSubmitBtn')) {
+
+        $('pagareSubmitBtn').textContent =
+            'Actualizar pagaré';
+    }
+
+    if ($('pagareEditId')) {
+
+        $('pagareEditId').value = id;
+    }
+
+
+    if ($('pagareFormTitle')) {
+
+        $('pagareFormTitle')
+            .scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+    }
+}
+
+
+function applyPagareToForm(pagare) {
+
+    if ($('pagareFechaEmision')) {
+        $('pagareFechaEmision').value =
+            pagare.fechaEmision || today();
+    }
+
+    if ($('pagarePoliza')) {
+        $('pagarePoliza').value =
+            pagare.poliza || '';
+    }
+
+    if ($('pagareTomador')) {
+        $('pagareTomador').value =
+            pagare.tomador || '';
+    }
+
+    if ($('pagareNit')) {
+        $('pagareNit').value =
+            pagare.nit || '';
+    }
+
+    if ($('pagareTipo')) {
+        $('pagareTipo').value =
+            pagare.tipo || '';
+    }
+
+    if ($('pagareEstado')) {
+        $('pagareEstado').value =
+            pagare.estado || 'Pendiente';
+    }
+
+    if ($('pagareFecha')) {
+        $('pagareFecha').value =
+            pagare.fecha || '';
+    }
+
+    if ($('pagareComercial')) {
+        $('pagareComercial').value =
+            pagare.comercial || '';
+    }
+}
+
+
+/* =========================================================
    GUARDAR PAGARÉ
    ========================================================= */
+
+if ($('newPagareBtn')) {
+
+    $('newPagareBtn').addEventListener(
+        'click',
+        () => {
+
+            clearPagareEditState();
+
+            if ($('pagareForm')) {
+
+                $('pagareForm').reset();
+            }
+
+            go('pagares');
+
+            if ($('pagareFormTitle')) {
+
+                $('pagareFormTitle')
+                    .scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+            }
+        }
+    );
+}
+
 
 if ($('pagareForm')) {
 
@@ -2214,16 +2462,24 @@ if ($('pagareForm')) {
             event.preventDefault();
 
 
+            const isEditing =
+                !!editingPagareId;
+
+
             const pagare = {
 
                 id:
-                    window.crypto &&
-                    typeof crypto.randomUUID ===
-                    'function'
+                    isEditing
+                        ? editingPagareId
+                        : (
+                            window.crypto &&
+                            typeof crypto.randomUUID ===
+                            'function'
 
-                        ? crypto.randomUUID()
+                                ? crypto.randomUUID()
 
-                        : String(Date.now()),
+                                : String(Date.now())
+                          ),
 
 
                 fechaEmision:
@@ -2262,13 +2518,18 @@ if ($('pagareForm')) {
             const button =
                 event.submitter;
 
+            const originalLabel =
+                button ? button.textContent : '';
+
 
             if (button) {
 
                 button.disabled = true;
 
                 button.textContent =
-                    'Guardando...';
+                    isEditing
+                        ? 'Actualizando...'
+                        : 'Guardando...';
             }
 
 
@@ -2276,7 +2537,9 @@ if ($('pagareForm')) {
 
                 const response =
                     await apiWrite(
-                        'savePagare',
+                        isEditing
+                            ? 'updatePagare'
+                            : 'savePagare',
                         pagare
                     );
 
@@ -2285,7 +2548,9 @@ if ($('pagareForm')) {
 
                     throw new Error(
                         response.error ||
-                        'No se pudo guardar el pagaré'
+                        (isEditing
+                            ? 'No se pudo actualizar el pagaré'
+                            : 'No se pudo guardar el pagaré')
                     );
                 }
 
@@ -2294,6 +2559,9 @@ if ($('pagareForm')) {
 
                     $('pagareForm').reset();
                 }
+
+
+                clearPagareEditState();
 
 
                 if ($('pagareFechaEmision')) {
@@ -2307,7 +2575,9 @@ if ($('pagareForm')) {
 
 
                 toast(
-                    'Pagaré guardado en Google Sheets'
+                    isEditing
+                        ? 'Pagaré actualizado en Google Sheets'
+                        : 'Pagaré guardado en Google Sheets'
                 );
 
 
@@ -2317,7 +2587,9 @@ if ($('pagareForm')) {
             } catch (error) {
 
                 toast(
-                    'No se pudo guardar el pagaré: ' +
+                    (isEditing
+                        ? 'No se pudo actualizar el pagaré: '
+                        : 'No se pudo guardar el pagaré: ') +
                     error.message
                 );
 
@@ -2329,7 +2601,7 @@ if ($('pagareForm')) {
                     button.disabled = false;
 
                     button.textContent =
-                        'Guardar pagaré';
+                        originalLabel;
                 }
             }
         }
@@ -2588,6 +2860,15 @@ function renderPagares() {
                             <td data-label="Acciones">
 
                                 <div class="actions">
+
+                                    <button
+                                        class="icon"
+                                        title="Editar pagaré"
+                                        onclick="editPagare('${pagare.id}')"
+                                    >
+                                        ✎
+                                    </button>
+
 
                                     <button
                                         class="icon"

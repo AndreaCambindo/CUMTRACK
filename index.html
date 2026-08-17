@@ -31,13 +31,15 @@
 </style>
 </head>
 <body>
+<button class="menu-toggle-btn" id="sidebarToggle" aria-label="Abrir menú" title="Menú">☰</button>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="layout">
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="brand">CUM<span>TRACK</span><small>Seguimiento de cotizaciones</small></div>
   <nav>
     <button class="nav-btn active" data-page="dashboard">⌂ <span>Dashboard</span></button>
     <button class="nav-btn" data-page="budget">◎ <span>Presupuesto</span></button>
-    <button class="nav-btn" data-page="new">＋ <span>Nueva cotización</span></button>
+    <!--<button class="nav-btn" data-page="new">＋ <span>Nueva cotización</span></button> -->
     <button class="nav-btn" data-page="list">☷ <span>Cotizaciones</span></button>
     <button class="nav-btn" data-page="pagares">▣ <span>Pagarés</span></button>
     <button class="nav-btn" data-page="config">⚙ <span>Configuración</span></button>
@@ -108,12 +110,13 @@
 <section id="pagares" class="page">
 <header>
   <div><h1>Pagarés</h1><p>Registra, consulta y realiza seguimiento de los pagarés.</p></div>
-  <button class="btn primary" data-go="pagares">＋ Nuevo pagaré</button>
+  <button class="btn primary" id="newPagareBtn">＋ Nuevo pagaré</button>
 </header>
 
 <div class="panel pagare-form-panel">
-  <div class="panel-title"><h2>Registrar pagaré</h2></div>
+  <div class="panel-title"><h2 id="pagareFormTitle">Registrar pagaré</h2></div>
   <form id="pagareForm" class="form">
+    <input type="hidden" id="pagareEditId" value="">
     <label>Fecha emisión *<input id="pagareFechaEmision" type="date" required></label>
     <label># Póliza *<input id="pagarePoliza" required></label>
     <label>Tomador *<input id="pagareTomador" required></label>
@@ -124,7 +127,7 @@
     <label>Comercial *<select id="pagareComercial" required></select></label>
     <div class="full form-actions">
       <button type="button" class="btn light" data-go="dashboard">Cancelar</button>
-      <button class="btn primary" type="submit">Guardar pagaré</button>
+      <button class="btn primary" type="submit" id="pagareSubmitBtn">Guardar pagaré</button>
     </div>
   </form>
 </div>
@@ -173,8 +176,8 @@
   <div class="panel-title"><h2>Cotizaciones del mes</h2></div>
   <div id="budgetQuotesTable"></div>
 </div> -->
+</section>
 
-</section> 
 <section id="config" class="page">
 <header><div><h1>Configuración</h1><p>Agrega o elimina comerciales e intermediarios. Todo se guarda directamente en Google Sheets.</p></div></header>
 <div class="config-grid">
