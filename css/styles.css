@@ -170,7 +170,7 @@ body {
 }
 
 .brand span {
-    color: #61d59a;
+    color: rgb(253, 200, 0);
 }
 
 .brand small {
@@ -401,6 +401,10 @@ header p {
     width: 100%;
 
     margin-bottom: 22px;
+}
+
+.declinados-stats {
+    grid-template-columns: minmax(0, 260px);
 }
 
 .stats article {
@@ -1162,6 +1166,80 @@ table tbody tr.clickable-row:hover {
 
 .budget-summary-panel {
     margin-bottom: 20px;
+}
+
+.budget-chart-panel {
+    margin-bottom: 20px;
+}
+
+.budget-chart-panel select {
+    border: 1px solid #d6dce4;
+
+    border-radius: 8px;
+
+    padding: 8px 10px;
+
+    font-family: inherit;
+
+    font-weight: 700;
+
+    color: var(--text);
+
+    background: #ffffff;
+}
+
+.budget-chart-legend {
+    display: flex;
+
+    gap: 20px;
+
+    padding: 16px 21px 0;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: var(--muted);
+}
+
+.legend-item {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+}
+
+.legend-swatch {
+    display: inline-block;
+
+    width: 12px;
+    height: 12px;
+
+    border-radius: 3px;
+}
+
+.swatch-budget {
+    background: var(--nav2);
+}
+
+.swatch-achieved {
+    background: var(--green);
+}
+
+#budgetChartContainer {
+    padding: 16px 21px 21px;
+
+    overflow-x: auto;
+}
+
+#budgetChartContainer svg {
+    display: block;
+
+    min-width: 720px;
+
+    width: 100%;
+
+    height: auto;
 }
 
 .budget-controls {

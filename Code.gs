@@ -5,6 +5,7 @@ const SHEET_COMERCIALES = 'Comerciales';
 const SHEET_INTERMEDIARIOS = 'Intermediarios';
 const SHEET_PAGARES = 'Pagares';
 const SHEET_PRESUPUESTOS = 'Presupuestos';
+const SHEET_DECLINADOS = 'Declinados';
 
 
 /* =========================================================
@@ -60,6 +61,18 @@ const HPRE = [
     'Última actualización'
 ];
 
+const HDEC = [
+    'ID',
+    'Fecha de solicitud',
+    'Tomador',
+    'NIT',
+    'Comercial',
+    'Intermediario',
+    'Observaciones',
+    'Fecha de creación',
+    'Última actualización'
+];
+
 
 /* =========================================================
    CONEXIÓN
@@ -110,6 +123,14 @@ function setup() {
         s,
         SHEET_PRESUPUESTOS,
         HPRE
+    );
+
+    /* NUEVA HOJA DE NEGOCIOS DECLINADOS */
+
+    prep(
+        s,
+        SHEET_DECLINADOS,
+        HDEC
     );
 
 }
@@ -424,6 +445,21 @@ function dispatch(a, p) {
 
     if (a === 'saveBudget') {
         return saveBudget(p);
+    }
+
+
+    /* NEGOCIOS DECLINADOS */
+
+    if (a === 'getDeclinados') {
+        return getDeclinados();
+    }
+
+    if (a === 'saveDeclinado') {
+        return saveDeclinado(p);
+    }
+
+    if (a === 'updateDeclinado') {
+        return updateDeclinado(p);
     }
 
 
@@ -1811,6 +1847,243 @@ function saveBudget(d) {
         data: {
             mes: mes
         }
+
+    };
+
+}
+
+
+/* =========================================================
+   NEGOCIOS DECLINADOS
+   ========================================================= */
+
+function getDeclinados() {
+
+    const sh =
+        ss().getSheetByName(
+            SHEET_DECLINADOS
+        );
+
+    if (!sh) {
+
+        return {
+            success: true,
+            data: []
+        };
+
+    }
+
+    const lr =
+        sh.getLastRow();
+
+    if (lr < 2) {
+
+        return {
+            success: true,
+            data: []
+        };
+
+    }
+
+    const v =
+        sh
+            .getRange(2, 1, lr - 1, HDEC.length)
+            .getValues();
+
+    return {
+
+        success: true,
+
+        data:
+            v.map(r => ({
+
+                id: r[0],
+
+                fecha: date(r[1]),
+
+                tomador: r[2],
+
+                nit: r[3],
+
+                comercial: r[4],
+
+                intermediario: r[5],
+
+                observaciones: r[6],
+
+                fechaCreacion:
+                    dateTime(r[7]),
+
+                ultimaActualizacion:
+                    dateTime(r[8])
+
+            }))
+
+    };
+
+}
+
+
+/* =========================================================
+   GUARDAR NEGOCIO DECLINADO
+   ========================================================= */
+
+function saveDeclinado(d) {
+
+    const sh =
+        ss().getSheetByName(
+            SHEET_DECLINADOS
+        );
+
+    if (!sh) {
+
+        throw new Error(
+            'Ejecuta setup() primero.'
+        );
+
+    }
+
+    const now =
+        new Date();
+
+    const id =
+        d.id ||
+        Utilities.getUuid();
+
+    sh.appendRow([
+
+        id,
+
+        d.fecha || '',
+
+        d.tomador || '',
+
+        d.nit || '',
+
+        d.comercial || '',
+
+        d.intermediario || '',
+
+        d.observaciones || '',
+
+        now,
+
+        now
+
+    ]);
+
+    return {
+
+        success: true,
+
+        message:
+            'Negocio declinado guardado correctamente.',
+
+        data: {
+            id: id
+        }
+
+    };
+
+}
+
+
+/* =========================================================
+   ACTUALIZAR NEGOCIO DECLINADO
+   ========================================================= */
+
+function updateDeclinado(d) {
+
+    const sh =
+        ss().getSheetByName(
+            SHEET_DECLINADOS
+        );
+
+    if (!sh) {
+
+        throw new Error(
+            'La hoja Declinados no existe.'
+        );
+
+    }
+
+    const lr =
+        sh.getLastRow();
+
+    if (lr < 2) {
+
+        throw new Error(
+            'No existen negocios declinados.'
+        );
+
+    }
+
+    const ids =
+        sh
+            .getRange(2, 1, lr - 1, 1)
+            .getValues();
+
+    let row = 0;
+
+    for (
+        let i = 0;
+        i < ids.length;
+        i++
+    ) {
+
+        if (
+            String(ids[i][0]) ===
+            String(d.id)
+        ) {
+
+            row = i + 2;
+
+            break;
+
+        }
+
+    }
+
+    if (!row) {
+
+        throw new Error(
+            'No se encontró el registro.'
+        );
+
+    }
+
+    sh
+        .getRange(row, 2, 1, 6)
+        .setValues([[
+
+            d.fecha || '',
+
+            d.tomador || '',
+
+            d.nit || '',
+
+            d.comercial || '',
+
+            d.intermediario || '',
+
+            d.observaciones || ''
+
+        ]]);
+
+    sh
+        .getRange(row, 9)
+        .setValue(
+            new Date()
+        );
+
+    return {
+
+        success: true,
+
+        message:
+            'Negocio declinado actualizado correctamente.',
+
+        id: d.id
 
     };
 

@@ -4,13 +4,16 @@ const LOCAL_KEY = 'cumtrack_local_backup_v2';
 const CONFIG_KEY = 'cumtrack_config_backup_v2';
 const PAGARES_KEY = 'cumtrack_pagares_local_backup_v2';
 const BUDGETS_KEY = 'cumtrack_budgets_local_backup_v1';
+const DECLINADOS_KEY = 'cumtrack_declinados_local_backup_v1';
 
 let quotes = [];
 let pagares = [];
 let budgets = [];
+let declinados = [];
 
 let lastFilteredQuotes = [];
 let lastFilteredPagares = [];
+let lastFilteredDeclinados = [];
 let lastBudgetContext = null;
 
 let config = {
@@ -22,6 +25,7 @@ let statusId = null;
 let pagareStatusId = null;
 let editingQuoteId = null;
 let editingPagareId = null;
+let editingDeclinadoId = null;
 let manualWhatsappQuoteId = null;
 let localMode = false;
 let localFileName = '';
@@ -63,6 +67,15 @@ const cls = status => String(status || '')
 const quotePrimaTotal = q =>
     (Number(q.primaCum) || 0) +
     (Number(q.primaRce) || 0);
+
+/*
+ * Cuenta "negocios" en vez de simples filas: una
+ * cotización con solo CUM cuenta 1, pero si además
+ * tiene Prima RCE diligenciada, cuenta 2 (son dos
+ * pólizas dentro del mismo registro).
+ */
+const quoteBusinessCount = q =>
+    1 + (Number(q.primaRce) > 0 ? 1 : 0);
 
 
 /*
@@ -183,6 +196,11 @@ function saveBackup() {
         BUDGETS_KEY,
         JSON.stringify(budgets)
     );
+
+    localStorage.setItem(
+        DECLINADOS_KEY,
+        JSON.stringify(declinados)
+    );
 }
 
 
@@ -272,7 +290,8 @@ async function syncAll() {
             commercialsResponse,
             intermediariesResponse,
             pagaresResponse,
-            budgetsResponse
+            budgetsResponse,
+            declinadosResponse
         ] = await Promise.all([
 
             jsonp('getQuotes'),
@@ -283,7 +302,9 @@ async function syncAll() {
 
             jsonp('getPagares'),
 
-            jsonp('getBudgets')
+            jsonp('getBudgets'),
+
+            jsonp('getDeclinados')
         ]);
 
 
@@ -322,11 +343,20 @@ async function syncAll() {
         }
 
 
+        if (declinadosResponse.success) {
+
+            declinados =
+                declinadosResponse.data || [];
+        }
+
+
         saveBackup();
 
         fillForm();
 
         fillPagareForm();
+
+        fillDeclinadoForm();
 
         render();
 
@@ -387,9 +417,23 @@ async function syncAll() {
         }
 
 
+        try {
+
+            declinados = JSON.parse(
+                localStorage.getItem(DECLINADOS_KEY) || '[]'
+            );
+
+        } catch {
+
+            declinados = [];
+        }
+
+
         fillForm();
 
         fillPagareForm();
+
+        fillDeclinadoForm();
 
         render();
 
@@ -592,6 +636,33 @@ function excelRowsToBudgets(rows) {
         .filter(b => b.mes);
 }
 
+function excelRowsToDeclinados(rows) {
+
+    return rows
+        .map(r => ({
+
+            id: r['ID'] || '',
+
+            fecha: excelDateStr(r['Fecha de solicitud']),
+
+            tomador: r['Tomador'] || '',
+
+            nit: r['NIT'] || '',
+
+            comercial: r['Comercial'] || '',
+
+            intermediario: r['Intermediario'] || '',
+
+            observaciones: r['Observaciones'] || '',
+
+            fechaCreacion: excelDateStr(r['Fecha de creación'], true),
+
+            ultimaActualizacion: excelDateStr(r['Última actualización'], true)
+
+        }))
+        .filter(d => d.tomador || d.nit);
+}
+
 
 function updateModeIndicator() {
 
@@ -687,6 +758,11 @@ async function loadLocalWorkbook(file) {
                 getSheetRows('Presupuestos')
             );
 
+        declinados =
+            excelRowsToDeclinados(
+                getSheetRows('Declinados')
+            );
+
 
         localMode = true;
 
@@ -697,9 +773,15 @@ async function loadLocalWorkbook(file) {
 
         clearEditState();
 
+        clearPagareEditState();
+
+        clearDeclinadoEditState();
+
         fillForm();
 
         fillPagareForm();
+
+        fillDeclinadoForm();
 
         render();
 
@@ -863,6 +945,11 @@ function go(page) {
         clearPagareEditState();
     }
 
+    if (page !== 'declinados' && editingDeclinadoId) {
+
+        clearDeclinadoEditState();
+    }
+
     document
         .querySelectorAll('.page')
         .forEach(section => {
@@ -906,6 +993,17 @@ function go(page) {
         }
 
         fillPagareForm();
+    }
+
+
+    if (page === 'declinados') {
+
+        if (!editingDeclinadoId) {
+
+            clearDeclinadoEditState();
+        }
+
+        fillDeclinadoForm();
     }
 
 
@@ -967,34 +1065,46 @@ function render() {
     if ($('sQuoted')) {
 
         $('sQuoted').textContent =
-            quotes.length;
+            quotes.reduce(
+                (sum, q) => sum + quoteBusinessCount(q),
+                0
+            );
     }
 
 
     if ($('sWon')) {
 
         $('sWon').textContent =
-            quotes.filter(
-                q => q.estado === 'Ganada'
-            ).length;
+            quotes
+                .filter(q => q.estado === 'Ganada')
+                .reduce(
+                    (sum, q) => sum + quoteBusinessCount(q),
+                    0
+                );
     }
 
 
     if ($('sLost')) {
 
         $('sLost').textContent =
-            quotes.filter(
-                q => q.estado === 'Perdida'
-            ).length;
+            quotes
+                .filter(q => q.estado === 'Perdida')
+                .reduce(
+                    (sum, q) => sum + quoteBusinessCount(q),
+                    0
+                );
     }
 
 
     if ($('sNegotiation')) {
 
         $('sNegotiation').textContent =
-            quotes.filter(
-                q => q.estado === 'En negociación'
-            ).length;
+            quotes
+                .filter(q => q.estado === 'En negociación')
+                .reduce(
+                    (sum, q) => sum + quoteBusinessCount(q),
+                    0
+                );
     }
 
 
@@ -1172,6 +1282,8 @@ function render() {
     renderConfig();
 
     renderPagares();
+
+    renderDeclinados();
 
     renderBudget();
 
@@ -3131,6 +3243,644 @@ if ($('cancelPagareStatus')) {
 }
 
 /* =========================================================
+   NEGOCIOS DECLINADOS
+   ========================================================= */
+
+function fillDeclinadoForm() {
+
+    if (
+        $('declinadoFecha') &&
+        !editingDeclinadoId
+    ) {
+
+        $('declinadoFecha').value =
+            $('declinadoFecha').value ||
+            today();
+    }
+
+
+    if ($('declinadoComercial')) {
+
+        let html =
+            '<option value="">Seleccionar...</option>';
+
+        config.commercials.forEach(commercial => {
+
+            html += `
+                <option value="${esc(commercial.name)}">
+                    ${esc(commercial.name)}
+                </option>
+            `;
+
+        });
+
+        $('declinadoComercial').innerHTML = html;
+    }
+
+
+    if ($('declinadoIntermediario')) {
+
+        let html =
+            '<option value="">Seleccionar...</option>';
+
+        config.intermediaries.forEach(intermediary => {
+
+            html += `
+                <option value="${esc(intermediary)}">
+                    ${esc(intermediary)}
+                </option>
+            `;
+
+        });
+
+        $('declinadoIntermediario').innerHTML = html;
+    }
+
+
+    /* FILTROS */
+
+    if ($('declinadoComercialFilter')) {
+
+        const current =
+            $('declinadoComercialFilter').value;
+
+        let html =
+            '<option value="">Todos los comerciales</option>';
+
+        config.commercials.forEach(commercial => {
+
+            html += `
+                <option value="${esc(commercial.name)}">
+                    ${esc(commercial.name)}
+                </option>
+            `;
+
+        });
+
+        $('declinadoComercialFilter').innerHTML = html;
+
+        $('declinadoComercialFilter').value = current;
+    }
+
+
+    if ($('declinadoIntermediarioFilter')) {
+
+        const current =
+            $('declinadoIntermediarioFilter').value;
+
+        let html =
+            '<option value="">Todos los intermediarios</option>';
+
+        config.intermediaries.forEach(intermediary => {
+
+            html += `
+                <option value="${esc(intermediary)}">
+                    ${esc(intermediary)}
+                </option>
+            `;
+
+        });
+
+        $('declinadoIntermediarioFilter').innerHTML = html;
+
+        $('declinadoIntermediarioFilter').value = current;
+    }
+}
+
+
+function clearDeclinadoEditState() {
+
+    editingDeclinadoId = null;
+
+    if ($('declinadoEditId')) {
+
+        $('declinadoEditId').value = '';
+    }
+
+    if ($('declinadoFormTitle')) {
+
+        $('declinadoFormTitle').textContent =
+            'Nuevo negocio declinado';
+    }
+
+    if ($('declinadoSubmitBtn')) {
+
+        $('declinadoSubmitBtn').textContent =
+            'Guardar';
+    }
+}
+
+
+function applyDeclinadoToForm(declinado) {
+
+    if ($('declinadoFecha')) {
+        $('declinadoFecha').value =
+            declinado.fecha || today();
+    }
+
+    if ($('declinadoTomador')) {
+        $('declinadoTomador').value =
+            declinado.tomador || '';
+    }
+
+    if ($('declinadoNit')) {
+        $('declinadoNit').value =
+            declinado.nit || '';
+    }
+
+    if ($('declinadoComercial')) {
+        $('declinadoComercial').value =
+            declinado.comercial || '';
+    }
+
+    if ($('declinadoIntermediario')) {
+        $('declinadoIntermediario').value =
+            declinado.intermediario || '';
+    }
+
+    if ($('declinadoObservaciones')) {
+        $('declinadoObservaciones').value =
+            declinado.observaciones || '';
+    }
+}
+
+
+function editDeclinado(id) {
+
+    const declinado =
+        declinados.find(
+            d => d.id === id
+        );
+
+
+    if (!declinado) return;
+
+
+    editingDeclinadoId = id;
+
+    go('declinados');
+
+    applyDeclinadoToForm(declinado);
+
+
+    if ($('declinadoFormTitle')) {
+
+        $('declinadoFormTitle').textContent =
+            `Editar declinado — ${declinado.tomador || ''}`;
+
+        $('declinadoFormTitle')
+            .scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+    }
+
+    if ($('declinadoSubmitBtn')) {
+
+        $('declinadoSubmitBtn').textContent =
+            'Actualizar';
+    }
+
+    if ($('declinadoEditId')) {
+
+        $('declinadoEditId').value = id;
+    }
+}
+
+
+if ($('newDeclinadoBtn')) {
+
+    $('newDeclinadoBtn').addEventListener(
+        'click',
+        () => {
+
+            clearDeclinadoEditState();
+
+            if ($('declinadoForm')) {
+
+                $('declinadoForm').reset();
+            }
+
+            go('declinados');
+
+            if ($('declinadoFormTitle')) {
+
+                $('declinadoFormTitle')
+                    .scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+            }
+        }
+    );
+}
+
+
+if ($('cancelDeclinadoForm')) {
+
+    $('cancelDeclinadoForm').addEventListener(
+        'click',
+        () => {
+
+            clearDeclinadoEditState();
+
+            if ($('declinadoForm')) {
+
+                $('declinadoForm').reset();
+            }
+
+            fillDeclinadoForm();
+        }
+    );
+}
+
+
+if ($('declinadoForm')) {
+
+    $('declinadoForm').addEventListener(
+        'submit',
+        async event => {
+
+            event.preventDefault();
+
+
+            const isEditing =
+                !!editingDeclinadoId;
+
+
+            const declinado = {
+
+                id:
+                    isEditing
+                        ? editingDeclinadoId
+                        : (
+                            window.crypto &&
+                            typeof crypto.randomUUID ===
+                            'function'
+
+                                ? crypto.randomUUID()
+
+                                : String(Date.now())
+                          ),
+
+
+                fecha:
+                    $('declinadoFecha').value,
+
+
+                tomador:
+                    $('declinadoTomador').value.trim(),
+
+
+                nit:
+                    $('declinadoNit').value.trim(),
+
+
+                comercial:
+                    $('declinadoComercial').value,
+
+
+                intermediario:
+                    $('declinadoIntermediario').value,
+
+
+                observaciones:
+                    $('declinadoObservaciones').value.trim()
+            };
+
+
+            const button =
+                event.submitter;
+
+            const originalLabel =
+                button ? button.textContent : '';
+
+
+            if (button) {
+
+                button.disabled = true;
+
+                button.textContent =
+                    isEditing
+                        ? 'Actualizando...'
+                        : 'Guardando...';
+            }
+
+
+            try {
+
+                const response =
+                    await apiWrite(
+                        isEditing
+                            ? 'updateDeclinado'
+                            : 'saveDeclinado',
+                        declinado
+                    );
+
+
+                if (!response.success) {
+
+                    throw new Error(
+                        response.error ||
+                        (isEditing
+                            ? 'No se pudo actualizar el registro'
+                            : 'No se pudo guardar el registro')
+                    );
+                }
+
+
+                if ($('declinadoForm')) {
+
+                    $('declinadoForm').reset();
+                }
+
+
+                clearDeclinadoEditState();
+
+
+                if ($('declinadoFecha')) {
+
+                    $('declinadoFecha').value =
+                        today();
+                }
+
+
+                await syncAll();
+
+
+                toast(
+                    isEditing
+                        ? 'Negocio declinado actualizado en Google Sheets'
+                        : 'Negocio declinado guardado en Google Sheets'
+                );
+
+
+            } catch (error) {
+
+                toast(
+                    (isEditing
+                        ? 'No se pudo actualizar: '
+                        : 'No se pudo guardar: ') +
+                    error.message
+                );
+
+
+            } finally {
+
+                if (button) {
+
+                    button.disabled = false;
+
+                    button.textContent =
+                        originalLabel;
+                }
+            }
+        }
+    );
+}
+
+
+function renderDeclinados() {
+
+    if (!$('declinadosTable')) return;
+
+
+    const search =
+        ($('declinadoSearch')?.value || '')
+            .toLowerCase()
+            .trim();
+
+    const comercialFilter =
+        $('declinadoComercialFilter')?.value || '';
+
+    const intermediarioFilter =
+        $('declinadoIntermediarioFilter')?.value || '';
+
+    const monthFilter =
+        $('declinadoMonth')?.value || '';
+
+
+    const rows =
+        declinados
+            .filter(d => {
+
+                const text = `
+                    ${d.tomador || ''}
+                    ${d.nit || ''}
+                    ${d.comercial || ''}
+                    ${d.intermediario || ''}
+                `.toLowerCase();
+
+
+                const matchesSearch =
+                    !search ||
+                    text.includes(search);
+
+
+                const matchesComercial =
+                    !comercialFilter ||
+                    d.comercial === comercialFilter;
+
+
+                const matchesIntermediario =
+                    !intermediarioFilter ||
+                    d.intermediario === intermediarioFilter;
+
+
+                const matchesMonth =
+                    !monthFilter ||
+                    String(d.fecha || '').slice(0, 7) === monthFilter;
+
+
+                return (
+                    matchesSearch &&
+                    matchesComercial &&
+                    matchesIntermediario &&
+                    matchesMonth
+                );
+
+            })
+            .sort((a, b) => {
+
+                const dateA =
+                    new Date(a.fecha || 0).getTime();
+
+                const dateB =
+                    new Date(b.fecha || 0).getTime();
+
+                return dateB - dateA;
+            });
+
+
+    lastFilteredDeclinados = rows;
+
+
+    if ($('sDeclinadosCount')) {
+
+        $('sDeclinadosCount').textContent =
+            rows.length;
+    }
+
+
+    if (!rows.length) {
+
+        $('declinadosTable').innerHTML = `
+            <div class="empty">
+                No hay negocios declinados registrados con estos filtros.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    $('declinadosTable').innerHTML = `
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Fecha</th>
+
+                        <th>Tomador / NIT</th>
+
+                        <th>Comercial</th>
+
+                        <th>Intermediario</th>
+
+                        <th>Observaciones</th>
+
+                        <th>Acciones</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    ${rows.map(d => `
+
+                        <tr>
+
+                            <td data-label="Fecha">
+
+                                ${esc(
+                                    formatDate(d.fecha)
+                                )}
+
+                            </td>
+
+
+                            <td data-label="Tomador / NIT">
+
+                                <strong>
+                                    ${esc(d.tomador)}
+                                </strong>
+
+                                <span class="sub">
+                                    NIT: ${esc(d.nit)}
+                                </span>
+
+                            </td>
+
+
+                            <td data-label="Comercial">
+
+                                ${esc(
+                                    d.comercial || '—'
+                                )}
+
+                            </td>
+
+
+                            <td data-label="Intermediario">
+
+                                ${esc(
+                                    d.intermediario || '—'
+                                )}
+
+                            </td>
+
+
+                            <td data-label="Observaciones">
+
+                                ${esc(
+                                    d.observaciones || '—'
+                                )}
+
+                            </td>
+
+
+                            <td data-label="Acciones">
+
+                                <div class="actions">
+
+                                    <button
+                                        class="icon"
+                                        title="Editar registro"
+                                        onclick="editDeclinado('${d.id}')"
+                                    >
+                                        ✎
+                                    </button>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    `).join('')}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    `;
+}
+
+
+if ($('declinadoSearch')) {
+
+    $('declinadoSearch').addEventListener(
+        'input',
+        renderDeclinados
+    );
+}
+
+
+if ($('declinadoComercialFilter')) {
+
+    $('declinadoComercialFilter').addEventListener(
+        'change',
+        renderDeclinados
+    );
+}
+
+
+if ($('declinadoIntermediarioFilter')) {
+
+    $('declinadoIntermediarioFilter').addEventListener(
+        'change',
+        renderDeclinados
+    );
+}
+
+
+if ($('declinadoMonth')) {
+
+    $('declinadoMonth').addEventListener(
+        'change',
+        renderDeclinados
+    );
+}
+
+
+/* =========================================================
    CONFIGURACIÓN
    ========================================================= */
 
@@ -3720,7 +4470,10 @@ function renderBudget() {
     if ($('bCount')) {
 
         $('bCount').textContent =
-            wonThisMonth.length;
+            wonThisMonth.reduce(
+                (sum, q) => sum + quoteBusinessCount(q),
+                0
+            );
     }
 
     if ($('budgetPercent')) {
@@ -3752,6 +4505,334 @@ function renderBudget() {
                     </div>
                 `;
     }
+
+
+    renderBudgetChart();
+}
+
+
+/* =========================================================
+   GRÁFICA COMPARATIVA ANUAL (PRESUPUESTO VS LOGRADO)
+   ========================================================= */
+
+const BUDGET_CHART_MONTH_NAMES = [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+];
+
+function niceCeil(value) {
+
+    if (value <= 0) return 1;
+
+    const exponent =
+        Math.floor(Math.log10(value));
+
+    const magnitude =
+        Math.pow(10, exponent);
+
+    const residual =
+        value / magnitude;
+
+    let niceResidual;
+
+    if (residual <= 1) niceResidual = 1;
+    else if (residual <= 2) niceResidual = 2;
+    else if (residual <= 5) niceResidual = 5;
+    else niceResidual = 10;
+
+    return niceResidual * magnitude;
+}
+
+function compactMoney(value) {
+
+    try {
+
+        return new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            notation: 'compact',
+            maximumFractionDigits: 1
+        }).format(Number(value) || 0);
+
+    } catch {
+
+        return money(value);
+    }
+}
+
+function buildBudgetChartSVG(data) {
+
+    const width = 1000;
+    const height = 340;
+
+    const paddingLeft = 55;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 46;
+
+    const chartWidth =
+        width - paddingLeft - paddingRight;
+
+    const chartHeight =
+        height - paddingTop - paddingBottom;
+
+    const groupCount =
+        data.length;
+
+    const groupWidth =
+        chartWidth / groupCount;
+
+    const barGap =
+        groupWidth * 0.12;
+
+    const barWidth =
+        (groupWidth - (barGap * 3)) / 2;
+
+    const maxValue =
+        Math.max(
+            1,
+            ...data.flatMap(
+                d => [d.presupuesto, d.logrado]
+            )
+        );
+
+    const niceMax =
+        niceCeil(maxValue);
+
+    const scale = value =>
+        (value / niceMax) * chartHeight;
+
+    const baseY =
+        paddingTop + chartHeight;
+
+
+    let svg = `
+        <svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+    `;
+
+
+    /* LÍNEAS DE REFERENCIA */
+
+    for (let i = 0; i <= 4; i++) {
+
+        const y =
+            paddingTop + chartHeight - (chartHeight * i / 4);
+
+        const value =
+            niceMax * i / 4;
+
+        svg += `
+            <line x1="${paddingLeft}" y1="${y}" x2="${width - paddingRight}" y2="${y}"
+                stroke="#e5e9ee" stroke-width="1" />
+            <text x="${paddingLeft - 8}" y="${y + 4}" font-size="10" fill="#8a97a6"
+                text-anchor="end">${esc(compactMoney(value))}</text>
+        `;
+
+    }
+
+
+    /* SEPARADOR ANTES DEL GRUPO "TOTAL" */
+
+    if (data.some(d => d.isTotal)) {
+
+        const totalIndex =
+            data.findIndex(d => d.isTotal);
+
+        const sepX =
+            paddingLeft + (totalIndex * groupWidth);
+
+        svg += `
+            <line x1="${sepX}" y1="${paddingTop}" x2="${sepX}" y2="${baseY}"
+                stroke="#c7cfd8" stroke-width="1" stroke-dasharray="4 4" />
+        `;
+
+    }
+
+
+    /* BARRAS */
+
+    data.forEach((d, i) => {
+
+        const groupX =
+            paddingLeft + (i * groupWidth);
+
+        const bar1X =
+            groupX + barGap;
+
+        const bar2X =
+            bar1X + barWidth + barGap;
+
+        const h1 =
+            scale(d.presupuesto);
+
+        const h2 =
+            scale(d.logrado);
+
+        const y1 =
+            baseY - h1;
+
+        const y2 =
+            baseY - h2;
+
+        const color1 =
+            d.isTotal ? '#123a56' : '#1d5b8f';
+
+        const color2 =
+            d.isTotal ? '#0d5c3d' : '#14835b';
+
+        svg += `
+            <rect x="${bar1X}" y="${y1}" width="${barWidth}" height="${h1}"
+                rx="3" fill="${color1}">
+                <title>${esc(d.label)} — Presupuesto: ${esc(money(d.presupuesto))}</title>
+            </rect>
+            <rect x="${bar2X}" y="${y2}" width="${barWidth}" height="${h2}"
+                rx="3" fill="${color2}">
+                <title>${esc(d.label)} — Prima lograda: ${esc(money(d.logrado))}</title>
+            </rect>
+            <text x="${groupX + (groupWidth / 2)}" y="${height - paddingBottom + 18}"
+                font-size="11" fill="#475467" text-anchor="middle"
+                font-weight="${d.isTotal ? '800' : '600'}">${esc(d.label)}</text>
+        `;
+
+    });
+
+
+    /* EJE BASE */
+
+    svg += `
+        <line x1="${paddingLeft}" y1="${baseY}" x2="${width - paddingRight}" y2="${baseY}"
+            stroke="#c7cfd8" stroke-width="1.5" />
+    `;
+
+
+    svg += `</svg>`;
+
+    return svg;
+}
+
+function renderBudgetChart() {
+
+    if (!$('budgetChartContainer')) return;
+
+
+    const currentYear =
+        new Date().getFullYear();
+
+    const years = new Set();
+
+    years.add(String(currentYear));
+
+    budgets.forEach(b => {
+
+        if (b.mes) years.add(String(b.mes).slice(0, 4));
+    });
+
+    quotes.forEach(q => {
+
+        if (q.fecha) years.add(String(q.fecha).slice(0, 4));
+    });
+
+    const sortedYears =
+        Array.from(years)
+            .filter(Boolean)
+            .sort();
+
+
+    if ($('budgetChartYear')) {
+
+        const previousValue =
+            $('budgetChartYear').value ||
+            String(currentYear);
+
+        $('budgetChartYear').innerHTML =
+            sortedYears
+                .map(y => `<option value="${y}">${y}</option>`)
+                .join('');
+
+        $('budgetChartYear').value =
+            sortedYears.includes(previousValue)
+                ? previousValue
+                : String(currentYear);
+    }
+
+
+    const year =
+        $('budgetChartYear')?.value ||
+        String(currentYear);
+
+
+    const data = [];
+
+    let totalPresupuesto = 0;
+    let totalLogrado = 0;
+
+
+    for (let m = 1; m <= 12; m++) {
+
+        const key =
+            `${year}-${String(m).padStart(2, '0')}`;
+
+        const entry =
+            budgets.find(b => b.mes === key);
+
+        const presupuesto =
+            entry
+                ? Number(entry.presupuesto) || 0
+                : 0;
+
+        const logrado =
+            quotes
+                .filter(q =>
+                    q.estado === 'Ganada' &&
+                    String(q.fecha || '').slice(0, 7) === key
+                )
+                .reduce(
+                    (sum, q) => sum + quotePrimaTotal(q),
+                    0
+                );
+
+        totalPresupuesto += presupuesto;
+
+        totalLogrado += logrado;
+
+        data.push({
+
+            label: BUDGET_CHART_MONTH_NAMES[m - 1],
+
+            presupuesto,
+
+            logrado,
+
+            isTotal: false
+
+        });
+
+    }
+
+    data.push({
+
+        label: 'Total',
+
+        presupuesto: totalPresupuesto,
+
+        logrado: totalLogrado,
+
+        isTotal: true
+
+    });
+
+
+    $('budgetChartContainer').innerHTML =
+        buildBudgetChartSVG(data);
+}
+
+
+if ($('budgetChartYear')) {
+
+    $('budgetChartYear').addEventListener(
+        'change',
+        renderBudgetChart
+    );
 }
 
 
@@ -4001,6 +5082,30 @@ function pagaresToRows(list) {
 }
 
 
+function declinadosToRows(list) {
+
+    return list.map(d => ({
+
+        'Fecha de solicitud': d.fecha || '',
+
+        'Tomador': d.tomador || '',
+
+        'NIT': d.nit || '',
+
+        'Comercial': d.comercial || '',
+
+        'Intermediario': d.intermediario || '',
+
+        'Observaciones': d.observaciones || '',
+
+        'Fecha de creación': d.fechaCreacion || '',
+
+        'Última actualización': d.ultimaActualizacion || ''
+
+    }));
+}
+
+
 function exportQuotesExcel() {
 
     if (!lastFilteredQuotes.length) {
@@ -4071,6 +5176,41 @@ function exportPagaresExcel() {
 }
 
 
+function exportDeclinadosExcel() {
+
+    if (!lastFilteredDeclinados.length) {
+
+        toast(
+            'No hay negocios declinados para exportar con los filtros actuales.'
+        );
+
+        return;
+    }
+
+    const rows =
+        declinadosToRows(lastFilteredDeclinados);
+
+    const worksheet =
+        XLSX.utils.json_to_sheet(rows);
+
+    autoFitColumns(worksheet, rows);
+
+    const workbook =
+        XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        'Declinados'
+    );
+
+    downloadWorkbook(
+        workbook,
+        `CUMTRACK_Declinados_${today()}.xlsx`
+    );
+}
+
+
 function exportBudgetExcel() {
 
     if (!lastBudgetContext) {
@@ -4111,9 +5251,9 @@ function exportBudgetExcel() {
 
         '% Cumplimiento': percent,
 
-        'Cotizaciones ganadas': wonThisMonth.length,
+        'Cotizaciones ganadas': wonThisMonth.reduce((sum, q) => sum + quoteBusinessCount(q), 0),
 
-        'Cotizaciones totales del mes': quotesThisMonth.length
+        'Cotizaciones totales del mes': quotesThisMonth.reduce((sum, q) => sum + quoteBusinessCount(q), 0)
 
     }];
 
@@ -4174,6 +5314,15 @@ if ($('downloadPagaresBtn')) {
     $('downloadPagaresBtn').addEventListener(
         'click',
         exportPagaresExcel
+    );
+}
+
+
+if ($('downloadDeclinadosBtn')) {
+
+    $('downloadDeclinadosBtn').addEventListener(
+        'click',
+        exportDeclinadosExcel
     );
 }
 

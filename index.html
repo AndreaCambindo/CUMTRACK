@@ -39,8 +39,9 @@
   <nav>
     <button class="nav-btn active" data-page="dashboard">⌂ <span>Dashboard</span></button>
     <button class="nav-btn" data-page="budget">◎ <span>Presupuesto</span></button>
-    <!--<button class="nav-btn" data-page="new">＋ <span>Nueva cotización</span></button> -->
+    <!-- <button class="nav-btn" data-page="new">＋ <span>Nueva cotización</span></button> -->
     <button class="nav-btn" data-page="list">☷ <span>Cotizaciones</span></button>
+    <button class="nav-btn" data-page="declinados">⊘ <span>Declinados</span></button>
     <button class="nav-btn" data-page="pagares">▣ <span>Pagarés</span></button>
     <button class="nav-btn" data-page="config">⚙ <span>Configuración</span></button>
   </nav>
@@ -172,10 +173,58 @@
   </div>
 </div>
 
+<div class="panel budget-chart-panel">
+  <div class="panel-title">
+    <h2>Presupuesto vs. logrado (por mes)</h2>
+    <select id="budgetChartYear"></select>
+  </div>
+  <div class="budget-chart-legend">
+    <span class="legend-item"><i class="legend-swatch swatch-budget"></i> Presupuesto</span>
+    <span class="legend-item"><i class="legend-swatch swatch-achieved"></i> Prima lograda</span>
+  </div>
+  <div id="budgetChartContainer"></div>
+</div>
+
 <!-- <div class="panel budget-quotes-panel">
   <div class="panel-title"><h2>Cotizaciones del mes</h2></div>
   <div id="budgetQuotesTable"></div>
 </div> -->
+</section>
+
+<section id="declinados" class="page">
+<header><div><h1>Negocios Declinados</h1><p>Registra las cotizaciones que no prosperaron, con su motivo.</p></div><button class="btn primary" id="newDeclinadoBtn">＋ Nuevo declinado</button></header>
+
+<div class="stats declinados-stats">
+  <article><span>Negocios declinados</span><strong id="sDeclinadosCount">0</strong></article>
+</div>
+
+<div class="panel declinado-form-panel">
+  <div class="panel-title"><h2 id="declinadoFormTitle">Nuevo negocio declinado</h2></div>
+  <form id="declinadoForm" class="form">
+    <input type="hidden" id="declinadoEditId" value="">
+    <label>Fecha de solicitud *<input id="declinadoFecha" type="date" required></label>
+    <label>Tomador *<input id="declinadoTomador" required></label>
+    <label>NIT *<input id="declinadoNit" required></label>
+    <label>Comercial responsable *<select id="declinadoComercial" required></select></label>
+    <label>Intermediario<select id="declinadoIntermediario"></select></label>
+    <label class="full">Observaciones<textarea id="declinadoObservaciones" placeholder="Motivo por el que se declinó el negocio..."></textarea></label>
+    <div class="full form-actions">
+      <button type="button" class="btn light" id="cancelDeclinadoForm">Cancelar</button>
+      <button class="btn primary" type="submit" id="declinadoSubmitBtn">Guardar</button>
+    </div>
+  </form>
+</div>
+
+<div class="panel">
+  <div class="toolbar">
+    <input id="declinadoSearch" placeholder="Buscar tomador, NIT, comercial o intermediario...">
+    <select id="declinadoComercialFilter"><option value="">Todos los comerciales</option></select>
+    <select id="declinadoIntermediarioFilter"><option value="">Todos los intermediarios</option></select>
+    <input id="declinadoMonth" type="month" title="Filtrar por mes">
+    <button class="btn light" id="downloadDeclinadosBtn">⬇ Excel</button>
+  </div>
+  <div id="declinadosTable"></div>
+</div>
 </section>
 
 <section id="config" class="page">
